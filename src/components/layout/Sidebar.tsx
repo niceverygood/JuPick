@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,12 @@ const navigation = [
     name: "대시보드",
     href: "/",
     icon: LayoutDashboard,
+    roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
+  },
+  {
+    name: "AI 종목추천",
+    href: "/recommendations",
+    icon: Sparkles,
     roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
   },
   {
