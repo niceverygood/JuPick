@@ -15,6 +15,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Trophy,
+  Briefcase,
+  Gem,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -32,6 +35,24 @@ const navigation = [
     name: "AI 종목추천",
     href: "/recommendations",
     icon: Sparkles,
+    roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
+  },
+  {
+    name: "AI 성과",
+    href: "/performance",
+    icon: Trophy,
+    roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
+  },
+  {
+    name: "숨겨진 급등주",
+    href: "/hidden-gems",
+    icon: Gem,
+    roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
+  },
+  {
+    name: "내 포트폴리오",
+    href: "/portfolio",
+    icon: Briefcase,
     roles: ["MASTER", "DISTRIBUTOR", "AGENCY", "USER"],
   },
   {

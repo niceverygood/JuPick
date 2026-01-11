@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
-import { Bell, LogOut, User } from "lucide-react"
+import { LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useUIStore } from "@/stores/uiStore"
 import { cn } from "@/lib/utils"
 import { ROLE_LABELS } from "@/lib/constants"
+import { SignalAlerts } from "@/components/notifications/SignalAlerts"
 
 export function Header() {
   const { data: session } = useSession()
@@ -47,13 +48,8 @@ export function Header() {
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-              3
-            </span>
-          </Button>
+          {/* AI Signal Notifications */}
+          <SignalAlerts />
 
           {/* User Menu */}
           <DropdownMenu>
