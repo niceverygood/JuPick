@@ -1,15 +1,35 @@
 "use client"
 
-import { LucideIcon } from "lucide-react"
+import { 
+  Users, 
+  UserPlus, 
+  Building2, 
+  Coins, 
+  TrendingUp, 
+  Wallet,
+  Clock 
+} from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+
+const iconMap = {
+  users: Users,
+  userPlus: UserPlus,
+  building: Building2,
+  coins: Coins,
+  trending: TrendingUp,
+  wallet: Wallet,
+  clock: Clock,
+}
+
+type IconName = keyof typeof iconMap
 
 interface StatCardProps {
   title: string
   value: string | number
   subtitle?: string
   change?: number
-  icon: LucideIcon
+  iconName: IconName
   iconColor?: string
 }
 
@@ -18,9 +38,11 @@ export function StatCard({
   value,
   subtitle,
   change,
-  icon: Icon,
+  iconName,
   iconColor = "text-primary",
 }: StatCardProps) {
+  const Icon = iconMap[iconName]
+  
   return (
     <Card className="card-hover border-border/50 bg-card/80">
       <CardContent className="p-6">

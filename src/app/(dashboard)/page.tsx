@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { Wallet, Users, TrendingUp, Clock } from "lucide-react"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { WeeklyChart } from "@/components/dashboard/WeeklyChart"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
@@ -258,7 +257,7 @@ export default async function DashboardPage() {
             title="💰 이번주 정산예정"
             value={formatCurrency(stats.weeklySettlement)}
             change={12}
-            icon={Wallet}
+            iconName="wallet"
             iconColor="text-emerald-500"
           />
         )}
@@ -266,21 +265,21 @@ export default async function DashboardPage() {
           title="👥 하위계정 현황"
           value={`${stats.totalSubordinates}명`}
           subtitle={`활성: ${stats.activeSubordinates}명`}
-          icon={Users}
+          iconName="users"
           iconColor="text-blue-500"
         />
         <StatCard
           title="📈 활성구독 현황"
           value={`${stats.subscriptionsByService.stock + stats.subscriptionsByService.coin + stats.subscriptionsByService.futures}건`}
           subtitle={`주식: ${stats.subscriptionsByService.stock} / 코인: ${stats.subscriptionsByService.coin} / 선물: ${stats.subscriptionsByService.futures}`}
-          icon={TrendingUp}
+          iconName="trending"
           iconColor="text-violet-500"
         />
         <StatCard
           title="⏰ 만료 예정"
           value={`${stats.expiringCount}건`}
           subtitle="7일 이내"
-          icon={Clock}
+          iconName="clock"
           iconColor="text-amber-500"
         />
       </div>
