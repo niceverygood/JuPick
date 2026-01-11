@@ -80,33 +80,48 @@ export interface MarketAnalysis {
   generatedAt: string
 }
 
-// 주식 AI 추천 생성
-export async function generateStockRecommendations(): Promise<MarketAnalysis> {
+// 주식 AI 추천 생성 (실시간 데이터 기반)
+export async function generateStockRecommendations(marketData?: string): Promise<MarketAnalysis> {
   const systemPrompt = `당신은 전문 주식 애널리스트입니다. 한국 주식 시장(KOSPI, KOSDAQ)에 대한 매수/매도 추천을 제공합니다.
+
+실시간 시장 데이터를 분석하여 정확한 투자 추천을 제공해야 합니다.
 
 다음 JSON 형식으로만 응답하세요:
 {
   "marketSentiment": "BULLISH" | "BEARISH" | "NEUTRAL",
-  "summary": "시장 전반 분석 요약 (2-3문장)",
+  "summary": "시장 전반 분석 요약 (2-3문장, 제공된 데이터 기반)",
   "recommendations": [
     {
       "symbol": "종목코드 (예: 005930)",
       "name": "종목명 (예: 삼성전자)",
       "action": "BUY" | "SELL" | "HOLD",
-      "currentPrice": "현재가 (예: 72,500원)",
-      "targetPrice": "목표가 (예: 85,000원)",
-      "stopLoss": "손절가 (예: 68,000원)",
+      "currentPrice": "현재가 (실제 데이터 기반, 예: 72,500원)",
+      "targetPrice": "목표가 (현재가 대비 적절한 목표, 예: 85,000원)",
+      "stopLoss": "손절가 (현재가 대비 적절한 손절선, 예: 68,000원)",
       "confidence": 신뢰도 (0-100 숫자),
-      "reason": "추천 이유 (1-2문장)",
+      "reason": "추천 이유 (데이터 기반 구체적 분석, 1-2문장)",
       "timeframe": "투자 기간 (예: 단기 1-2주, 중기 1-3개월)",
       "riskLevel": "LOW" | "MEDIUM" | "HIGH"
     }
   ]
 }
 
-3-5개의 종목을 추천해주세요. 현실적인 한국 주식 종목과 가격대를 사용하세요.`
+5-7개의 종목을 추천해주세요. 반드시 제공된 실시간 데이터의 종목과 가격을 참고하세요.
+상승률 상위 종목 중 추가 상승 여력이 있는 종목, 
+하락 후 반등 가능성이 있는 종목, 
+거래량 급증 종목 등 다양한 관점에서 분석하세요.`
 
-  const userPrompt = `오늘의 한국 주식 시장 AI 종목 추천을 생성해주세요. 현재 시장 상황을 고려하여 매수/매도 추천을 제공해주세요.`
+  const userPrompt = marketData 
+    ? `아래는 현재 한국 주식 시장의 실시간 데이터입니다. 이 데이터를 분석하여 매수/매도 추천을 제공해주세요.
+
+${marketData}
+
+위 실시간 데이터를 기반으로:
+1. 시장 전반의 분위기를 분석하고
+2. 매수 추천 종목 (상승 모멘텀, 저평가, 기술적 반등 기대)
+3. 매도/관망 추천 종목 (과열, 차익실현 권고)
+을 선별해주세요.`
+    : `오늘의 한국 주식 시장 AI 종목 추천을 생성해주세요. 현재 시장 상황을 고려하여 매수/매도 추천을 제공해주세요.`
 
   try {
     const response = await chat([
@@ -129,7 +144,7 @@ export async function generateStockRecommendations(): Promise<MarketAnalysis> {
         createdAt: new Date().toISOString(),
       })),
       summary: parsed.summary,
-      disclaimer: "본 추천은 AI가 생성한 참고 자료이며, 투자 결정은 본인의 판단에 따라 신중하게 하시기 바랍니다. 투자 손실에 대한 책임은 투자자 본인에게 있습니다.",
+      disclaimer: "본 추천은 AI가 실시간 시장 데이터를 분석하여 생성한 참고 자료입니다. 투자 결정은 본인의 판단에 따라 신중하게 하시기 바랍니다. 투자 손실에 대한 책임은 투자자 본인에게 있습니다.",
       generatedAt: new Date().toISOString(),
     }
   } catch (error) {

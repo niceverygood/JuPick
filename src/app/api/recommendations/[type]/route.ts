@@ -8,6 +8,7 @@ import {
   MarketAnalysis,
 } from "@/lib/openrouter"
 import { ServiceType } from "@prisma/client"
+import { getMarketSnapshot, formatMarketDataForAI } from "@/lib/stockCrawler"
 
 const SERVICE_TYPE_MAP: Record<string, ServiceType> = {
   stock: ServiceType.STOCK,
@@ -17,7 +18,7 @@ const SERVICE_TYPE_MAP: Record<string, ServiceType> = {
 
 // 캐시된 추천 데이터 (실제 프로덕션에서는 Redis 등 사용)
 const recommendationsCache: Record<string, { data: MarketAnalysis; expiry: number }> = {}
-const CACHE_DURATION = 30 * 60 * 1000 // 30분
+const CACHE_DURATION = 10 * 60 * 1000 // 10분 (실시간 데이터 기반이므로 더 짧게)
 
 export async function GET(
   req: NextRequest,
@@ -79,7 +80,12 @@ export async function GET(
 
     switch (type) {
       case "stock":
-        recommendations = await generateStockRecommendations()
+        // 실시간 시장 데이터 가져오기
+        console.log("📊 실시간 주식 데이터 크롤링 중...")
+        const marketSnapshot = await getMarketSnapshot()
+        const marketData = formatMarketDataForAI(marketSnapshot)
+        console.log("✅ 크롤링 완료, AI 분석 시작...")
+        recommendations = await generateStockRecommendations(marketData)
         break
       case "coin":
         recommendations = await generateCoinRecommendations()
