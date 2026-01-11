@@ -4,6 +4,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// PostgreSQL (Supabase) - 프로덕션용
+// datasource db {
+//   provider  = "postgresql"
+//   url       = env("DATABASE_URL")
+//   directUrl = env("DIRECT_URL")
+// }
+
+// SQLite - 로컬 개발용
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
