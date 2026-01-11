@@ -1,0 +1,192 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 사용자 역할 enum
+enum UserRole {
+  MASTER      // 마스터 (플랫폼 운영자)
+  DISTRIBUTOR // 총판
+  AGENCY      // 대행사
+  USER        // 일반유저
+}
+
+// 서비스 타입 enum
+enum ServiceType {
+  STOCK         // 주식
+  COIN          // 코인 현물
+  COIN_FUTURES  // 코인 선물
+}
+
+// 구독 상태 enum
+enum SubscriptionStatus {
+  ACTIVE    // 활성
+  EXPIRED   // 만료
+  PENDING   // 대기
+}
+
+// 로그 타입 enum
+enum LogType {
+  SUBSCRIPTION_CREATED   // 구독 생성
+  SUBSCRIPTION_EXTENDED  // 구독 연장
+  SUBSCRIPTION_EXPIRED   // 구독 만료
+  USER_CREATED          // 유저 생성
+  USER_DELETED          // 유저 삭제
+  LOGIN                 // 로그인
+  SETTLEMENT            // 정산
+}
+
+// 사용자 테이블
+model User {
+  id            String    @id @default(cuid())
+  loginId       String    @unique  // 로그인 아이디
+  password      String              // 해시된 비밀번호
+  name          String              // 이름/닉네임
+  role          UserRole  @default(USER)
+  
+  // 상위 관계 (누가 이 계정을 만들었는지)
+  parentId      String?
+  parent        User?     @relation("UserHierarchy", fields: [parentId], references: [id])
+  children      User[]    @relation("UserHierarchy")
+  
+  // 총판용 정산 단가 (마스터가 설정)
+  dailyRate     Int       @default(100000)  // 1일당 단가 (원)
+  
+  // 메모
+  memo          String?
+  
+  // 상태
+  isActive      Boolean   @default(true)
+  isFreeTest    Boolean   @default(false)   // 무료 테스트 계정 여부
+  
+  // 타임스탬프
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  // 관계
+  subscriptions Subscription[]
+  logsCreated   Log[]     @relation("LogCreator")
+  logsTarget    Log[]     @relation("LogTarget")
+  notices       Notice[]
+  
+  @@index([parentId])
+  @@index([role])
+}
+
+// 구독(서비스 이용권) 테이블
+model Subscription {
+  id            String             @id @default(cuid())
+  
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  serviceType   ServiceType        // 서비스 종류
+  status        SubscriptionStatus @default(PENDING)
+  
+  startDate     DateTime           // 시작일
+  endDate       DateTime           // 종료일
+  
+  // 무료 테스트 여부
+  isFreeTest    Boolean            @default(false)
+  
+  // 누가 이 구독을 생성했는지
+  createdById   String
+  
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  
+  @@index([userId])
+  @@index([serviceType])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+// 활동 로그 테이블
+model Log {
+  id            String    @id @default(cuid())
+  
+  type          LogType
+  
+  // 로그를 생성한 사용자
+  creatorId     String
+  creator       User      @relation("LogCreator", fields: [creatorId], references: [id])
+  
+  // 로그 대상 사용자 (선택적)
+  targetId      String?
+  target        User?     @relation("LogTarget", fields: [targetId], references: [id])
+  
+  // 상세 데이터 (JSON)
+  metadata      Json?
+  
+  // 정산 관련
+  serviceType   ServiceType?
+  days          Int?              // 이용 일수
+  amount        Int?              // 금액
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([creatorId])
+  @@index([targetId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// 공지사항 테이블
+model Notice {
+  id            String    @id @default(cuid())
+  
+  title         String
+  content       String
+  
+  // 첨부파일 URL (선택)
+  attachmentUrl String?
+  
+  // 작성자 (마스터만)
+  authorId      String
+  author        User      @relation(fields: [authorId], references: [id])
+  
+  isPinned      Boolean   @default(false)  // 상단 고정
+  isPublished   Boolean   @default(true)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([authorId])
+  @@index([isPinned])
+}
+
+// 정산 내역 테이블 (주간 정산용)
+model Settlement {
+  id              String    @id @default(cuid())
+  
+  // 정산 대상 (총판)
+  distributorId   String
+  
+  // 정산 기간
+  periodStart     DateTime
+  periodEnd       DateTime
+  
+  // 정산 내역
+  totalDays       Int       // 총 이용일수
+  dailyRate       Int       // 1일 단가
+  totalAmount     Int       // 총 정산금액
+  
+  // 상세 내역 (JSON)
+  details         Json      // { agencies: [...], users: [...] }
+  
+  // 정산 상태
+  isPaid          Boolean   @default(false)
+  paidAt          DateTime?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([distributorId])
+  @@index([periodStart, periodEnd])
+}
