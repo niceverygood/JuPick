@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "JUPICK | 자동매매 관리 플랫폼",
-  description: "주식/코인/코인선물 자동매매 프로그램의 내부 정산 및 회원관리 대시보드",
+  title: "JUPICK | AI 종목추천 관리 플랫폼",
+  description: "주식/코인/코인선물 AI 종목추천 서비스의 내부 정산 및 회원관리 대시보드",
 }
 
 export default function RootLayout({

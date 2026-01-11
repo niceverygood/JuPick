@@ -64,7 +64,7 @@ function LoginForm() {
         </div>
         <CardTitle className="text-2xl font-bold gradient-text">JUPICK</CardTitle>
         <CardDescription className="text-muted-foreground">
-          자동매매 관리 플랫폼에 로그인하세요
+          AI 종목추천 관리 플랫폼에 로그인하세요
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-4">

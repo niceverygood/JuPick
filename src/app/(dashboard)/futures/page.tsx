@@ -103,7 +103,7 @@ export default function FuturesPage() {
       <div>
         <h1 className="text-2xl font-bold">📊 코인선물 관리</h1>
         <p className="text-muted-foreground">
-          코인 선물 자동매매 서비스 구독 현황을 관리합니다.
+          코인 선물 AI 종목추천 서비스 구독 현황을 관리합니다.
         </p>
       </div>
 

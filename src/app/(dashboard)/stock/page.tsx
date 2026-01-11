@@ -103,7 +103,7 @@ export default function StockPage() {
       <div>
         <h1 className="text-2xl font-bold">📈 주식 관리</h1>
         <p className="text-muted-foreground">
-          주식 자동매매 서비스 구독 현황을 관리합니다.
+          주식 AI 종목추천 서비스 구독 현황을 관리합니다.
         </p>
       </div>
 

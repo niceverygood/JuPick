@@ -246,7 +246,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold">📊 대시보드</h1>
         <p className="text-muted-foreground">
-          자동매매 서비스 현황을 한눈에 확인하세요.
+          AI 종목추천 서비스 현황을 한눈에 확인하세요.
         </p>
       </div>
 

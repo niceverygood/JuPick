@@ -177,7 +177,7 @@ async function main() {
       {
         title: "🎉 JUPICK 서비스 오픈 안내",
         content:
-          "안녕하세요. JUPICK 자동매매 관리 플랫폼이 오픈했습니다.\n\n주요 기능:\n- 주식/코인/코인선물 자동매매 구독 관리\n- 계층별 회원 관리 (총판/대행사/유저)\n- 정산 내역 자동 계산\n\n문의사항은 관리자에게 연락해주세요.",
+          "안녕하세요. JUPICK AI 종목추천 관리 플랫폼이 오픈했습니다.\n\n주요 기능:\n- 주식/코인/코인선물 AI 종목추천 구독 관리\n- 계층별 회원 관리 (총판/대행사/유저)\n- 정산 내역 자동 계산\n\n문의사항은 관리자에게 연락해주세요.",
         authorId: master.id,
         isPinned: true,
         isPublished: true,
