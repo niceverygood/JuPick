@@ -949,10 +949,8 @@ function PeriodSelector({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
-                  mode="single"
                   selected={periodStart}
                   onSelect={(date) => date && setPeriodStart(date)}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>
@@ -966,10 +964,8 @@ function PeriodSelector({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
-                  mode="single"
                   selected={periodEnd}
                   onSelect={(date) => date && setPeriodEnd(date)}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>
