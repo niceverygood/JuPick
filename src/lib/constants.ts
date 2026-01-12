@@ -76,3 +76,4 @@ export const QUICK_SELECT_DAYS = [7, 15, 30, 90]
 // 기본 일일 단가
 export const DEFAULT_DAILY_RATE = 100000
 
+

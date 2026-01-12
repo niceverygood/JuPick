@@ -153,31 +153,31 @@ export default function PerformancePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-amber-400" />
-          AI 성과 대시보드
+      <div className="min-w-0">
+        <h1 className="text-xl lg:text-2xl font-bold flex items-center gap-2">
+          <Trophy className="h-5 w-5 lg:h-6 lg:w-6 text-amber-400 shrink-0" />
+          <span className="truncate">AI 성과 대시보드</span>
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           AI 추천 종목의 실제 적중률과 수익률을 확인하세요.
         </p>
       </div>
 
       {/* 핵심 지표 카드 */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent overflow-hidden relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl" />
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">전체 적중률</p>
-                <p className="text-4xl font-bold text-emerald-400">{hitRate}%</p>
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs lg:text-sm text-muted-foreground truncate">전체 적중률</p>
+                <p className="text-2xl lg:text-4xl font-bold text-emerald-400">{hitRate}%</p>
                 <p className="text-xs text-emerald-400/70 mt-1">
                   {wins}승 {losses}패
                 </p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20">
-                <Target className="h-7 w-7 text-emerald-400" />
+              <div className="flex h-10 w-10 lg:h-14 lg:w-14 items-center justify-center rounded-full bg-emerald-500/20 shrink-0">
+                <Target className="h-5 w-5 lg:h-7 lg:w-7 text-emerald-400" />
               </div>
             </div>
           </CardContent>
@@ -185,19 +185,23 @@ export default function PerformancePage() {
 
         <Card className="border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-transparent overflow-hidden relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl" />
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">평균 수익률</p>
-                <PremiumLock isSubscribed={isSubscribed} type="blur" feature="수익률 통계">
-                  <p className="text-4xl font-bold text-violet-400">+{avgReturn.toFixed(1)}%</p>
-                </PremiumLock>
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs lg:text-sm text-muted-foreground">평균 수익률</p>
+                {isSubscribed ? (
+                  <p className="text-2xl lg:text-4xl font-bold text-violet-400">+{avgReturn.toFixed(1)}%</p>
+                ) : (
+                  <PremiumLock isSubscribed={isSubscribed} compact feature="수익률 통계">
+                    <span className="text-violet-400">+{avgReturn.toFixed(1)}%</span>
+                  </PremiumLock>
+                )}
                 <p className="text-xs text-violet-400/70 mt-1">
                   추천 종목 기준
                 </p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-500/20">
-                <TrendingUp className="h-7 w-7 text-violet-400" />
+              <div className="flex h-10 w-10 lg:h-14 lg:w-14 items-center justify-center rounded-full bg-violet-500/20 shrink-0">
+                <TrendingUp className="h-5 w-5 lg:h-7 lg:w-7 text-violet-400" />
               </div>
             </div>
           </CardContent>
@@ -205,19 +209,23 @@ export default function PerformancePage() {
 
         <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent overflow-hidden relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">이번 주 최고 수익</p>
-                <PremiumLock isSubscribed={isSubscribed} type="blur" feature="최고 수익 종목">
-                  <p className="text-4xl font-bold text-amber-400">+14.2%</p>
-                </PremiumLock>
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs lg:text-sm text-muted-foreground">이번 주 최고</p>
+                {isSubscribed ? (
+                  <p className="text-2xl lg:text-4xl font-bold text-amber-400">+14.2%</p>
+                ) : (
+                  <PremiumLock isSubscribed={isSubscribed} compact feature="최고 수익 종목">
+                    <span className="text-amber-400">+14.2%</span>
+                  </PremiumLock>
+                )}
                 <p className="text-xs text-amber-400/70 mt-1">
                   기아 (000270)
                 </p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/20">
-                <Sparkles className="h-7 w-7 text-amber-400" />
+              <div className="flex h-10 w-10 lg:h-14 lg:w-14 items-center justify-center rounded-full bg-amber-500/20 shrink-0">
+                <Sparkles className="h-5 w-5 lg:h-7 lg:w-7 text-amber-400" />
               </div>
             </div>
           </CardContent>
@@ -225,17 +233,17 @@ export default function PerformancePage() {
 
         <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-transparent overflow-hidden relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl" />
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">총 추천 수</p>
-                <p className="text-4xl font-bold text-primary">{PAST_RECOMMENDATIONS.length}</p>
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs lg:text-sm text-muted-foreground truncate">총 추천 수</p>
+                <p className="text-2xl lg:text-4xl font-bold text-primary">{PAST_RECOMMENDATIONS.length}</p>
                 <p className="text-xs text-primary/70 mt-1">
                   이번 주
                 </p>
               </div>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20">
-                <BarChart3 className="h-7 w-7 text-primary" />
+              <div className="flex h-10 w-10 lg:h-14 lg:w-14 items-center justify-center rounded-full bg-primary/20 shrink-0">
+                <BarChart3 className="h-5 w-5 lg:h-7 lg:w-7 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -454,55 +462,60 @@ function RecommendationRow({
   }
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/50 hover:border-border transition-colors">
-      <div className="flex items-center gap-4">
-        <div className="text-center min-w-[60px]">
-          <p className="text-xs text-muted-foreground">{rec.date.slice(5)}</p>
+    <div className="p-3 lg:p-4 rounded-lg bg-muted/30 border border-border/50 hover:border-border transition-colors">
+      {/* 모바일: 2줄 레이아웃, 데스크탑: 1줄 레이아웃 */}
+      <div className="flex items-center justify-between gap-2">
+        {/* 왼쪽: 날짜 + 종목명 */}
+        <div className="flex items-center gap-2 lg:gap-4 min-w-0 flex-1">
+          <div className="text-center shrink-0 w-12 lg:w-14">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">{rec.date.slice(5)}</p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 lg:gap-2">
+              <p className="font-medium text-sm lg:text-base whitespace-nowrap">{rec.name}</p>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[10px] lg:text-xs px-1.5 py-0 shrink-0",
+                  rec.action === "BUY" ? "text-emerald-400 border-emerald-500/50" : "text-red-400 border-red-500/50"
+                )}
+              >
+                {rec.action === "BUY" ? "매수" : "매도"}
+              </Badge>
+            </div>
+            <p className="text-xs lg:text-sm text-muted-foreground">{rec.symbol}</p>
+          </div>
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <p className="font-medium">{rec.name}</p>
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-xs",
-                rec.action === "BUY" ? "text-emerald-400 border-emerald-500/50" : "text-red-400 border-red-500/50"
-              )}
+        
+        {/* 오른쪽: 가격 정보 */}
+        <div className="flex items-center gap-2 lg:gap-6 shrink-0">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">진입가</p>
+            <p className="font-medium text-sm lg:text-base whitespace-nowrap">{rec.entryPrice.toLocaleString()}원</p>
+          </div>
+          {isSubscribed ? (
+            <>
+              <div className="text-right hidden lg:block">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">현재가</p>
+                <p className="font-medium whitespace-nowrap">{rec.currentPrice.toLocaleString()}원</p>
+              </div>
+              <div className={cn("px-2 lg:px-3 py-1 rounded-lg text-center min-w-[60px] lg:min-w-[80px]", statusColors[rec.status])}>
+                <p className="text-sm lg:text-lg font-bold whitespace-nowrap">
+                  {rec.returnRate > 0 ? "+" : ""}{rec.returnRate.toFixed(1)}%
+                </p>
+                <p className="text-[10px] lg:text-xs whitespace-nowrap">{statusLabels[rec.status]}</p>
+              </div>
+            </>
+          ) : (
+            <div 
+              className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+              onClick={onPremiumClick}
             >
-              {rec.action === "BUY" ? "매수" : "매도"}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">{rec.symbol}</p>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-6">
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">진입가</p>
-          <p className="font-medium">{rec.entryPrice.toLocaleString()}원</p>
-        </div>
-        {isSubscribed ? (
-          <>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">현재가</p>
-              <p className="font-medium">{rec.currentPrice.toLocaleString()}원</p>
+              <span className="blur-sm">+12.3%</span>
+              <Lock className="h-4 w-4" />
             </div>
-            <div className={cn("px-3 py-1 rounded-lg text-center min-w-[80px]", statusColors[rec.status])}>
-              <p className="text-lg font-bold">
-                {rec.returnRate > 0 ? "+" : ""}{rec.returnRate.toFixed(1)}%
-              </p>
-              <p className="text-xs">{statusLabels[rec.status]}</p>
-            </div>
-          </>
-        ) : (
-          <div 
-            className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-            onClick={onPremiumClick}
-          >
-            <span className="blur-sm">+12.3%</span>
-            <Lock className="h-4 w-4" />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

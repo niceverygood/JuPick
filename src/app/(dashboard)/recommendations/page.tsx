@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { usePlan } from "@/hooks/usePlan"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,17 +14,17 @@ import {
   Clock,
   Sparkles,
   Crown,
-  Flame,
-  Trophy,
-  Eye,
-  EyeOff,
+  ArrowRight,
+  Loader2,
+  Coins,
+  BarChart3,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { PremiumLock, PremiumModal, TeaserCard } from "@/components/premium/PremiumLock"
+import Link from "next/link"
 
 interface StockRecommendation {
   symbol: string
@@ -81,456 +81,322 @@ const RISK_LABELS = {
 }
 
 export default function RecommendationsPage() {
-  const { data: session } = useSession()
+  const { isLoading: planLoading, features, planId, planName, isSubscribed } = usePlan()
   const [activeTab, setActiveTab] = useState("stock")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<MarketAnalysis | null>(null)
-  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
-  const [showPremiumModal, setShowPremiumModal] = useState(false)
 
-  // 구독 상태 체크 (USER 역할이면 구독 필요, 그 외는 모두 접근 가능)
-  const isSubscribed = session?.user?.role !== "USER"
+  const dailyLimit = features.dailyRecommendationLimit
+  const canSeePrecisePrice = features.preciseTargetPrice
+  const canSeeStopLoss = features.stopLossPrice
 
   const fetchRecommendations = async (type: string) => {
     setLoading(true)
     setError(null)
-    setSubscriptionError(null)
 
     try {
       const response = await fetch(`/api/recommendations/${type}`)
       const result = await response.json()
 
       if (!response.ok) {
-        if (response.status === 403) {
-          setSubscriptionError(result.message)
-          setData(null)
-        } else {
-          throw new Error(result.error || "Failed to fetch recommendations")
-        }
-      } else {
-        setData(result)
+        setError(result.error || "데이터를 불러오는데 실패했습니다.")
+        return
       }
+
+      setData(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다")
+      setError("네트워크 오류가 발생했습니다.")
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchRecommendations(activeTab)
-  }, [activeTab])
+    if (!planLoading && isSubscribed) {
+      fetchRecommendations(activeTab)
+    }
+  }, [activeTab, planLoading, isSubscribed])
 
-  const handleRefresh = () => {
-    fetchRecommendations(activeTab)
+  if (planLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
-  const SentimentIcon = data ? SENTIMENT_STYLES[data.marketSentiment].icon : Minus
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+  // 구독하지 않은 경우
+  if (!isSubscribed) {
+    return (
+      <div className="space-y-6 animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
             AI 종목추천
           </h1>
           <p className="text-muted-foreground">
-            AI가 실시간 데이터를 분석한 매수/매도 추천을 확인하세요.
+            AI가 분석한 매수/매도 추천 종목을 확인하세요.
+          </p>
+        </div>
+
+        <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+          <CardContent className="p-8 text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/20">
+              <Crown className="h-10 w-10 text-amber-400" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">구독이 필요한 서비스입니다</h2>
+            <p className="text-muted-foreground mb-2">
+              현재 플랜: <Badge variant="outline">{planName}</Badge>
+            </p>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              AI 종목추천은 Basic 플랜 이상에서 이용 가능합니다.
+              지금 구독하고 AI의 투자 추천을 받아보세요!
+            </p>
+            <Button asChild size="lg" className="bg-gradient-to-r from-primary to-violet-600">
+              <Link href="/subscriptions">
+                구독 시작하기
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // 추천 종목 제한 적용
+  const limitedRecommendations = data?.recommendations
+    ? dailyLimit === -1
+      ? data.recommendations
+      : data.recommendations.slice(0, dailyLimit)
+    : []
+
+  const hasMoreRecommendations = data?.recommendations && dailyLimit !== -1 && data.recommendations.length > dailyLimit
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            AI 종목추천
+            <Badge className={cn(
+              planId === "premium" && "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0",
+              planId === "pro" && "bg-primary text-white border-0",
+            )}>
+              {planName}
+            </Badge>
+          </h1>
+          <p className="text-muted-foreground">
+            AI가 분석한 매수/매도 추천 종목을 확인하세요.
+            {dailyLimit !== -1 && (
+              <span className="ml-2 text-primary">
+                (일 {dailyLimit}종목 제한)
+              </span>
+            )}
           </p>
         </div>
         <Button
-          onClick={handleRefresh}
-          disabled={loading}
           variant="outline"
-          className="gap-2"
+          size="sm"
+          onClick={() => fetchRecommendations(activeTab)}
+          disabled={loading}
         >
-          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
           새로고침
         </Button>
       </div>
 
-      {/* AI Performance Stats - FOMO 유발 */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+      {/* 업그레이드 안내 (Basic 플랜) */}
+      {dailyLimit !== -1 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Crown className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-xs text-muted-foreground">이번 주 적중률</p>
-                <p className="text-2xl font-bold text-emerald-400">87%</p>
+                <p className="font-medium">더 많은 추천을 원하시나요?</p>
+                <p className="text-sm text-muted-foreground">
+                  Pro 플랜으로 업그레이드하면 무제한 AI 추천을 받을 수 있습니다.
+                </p>
               </div>
-              <Trophy className="h-8 w-8 text-emerald-400/50" />
             </div>
+            <Button asChild size="sm">
+              <Link href="/subscriptions">업그레이드</Link>
+            </Button>
           </CardContent>
         </Card>
-        
-        <Card className="border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">평균 수익률</p>
-                <PremiumLock isSubscribed={isSubscribed} type="blur" feature="수익률 통계">
-                  <p className="text-2xl font-bold text-violet-400">+18.5%</p>
-                </PremiumLock>
-              </div>
-              <TrendingUp className="h-8 w-8 text-violet-400/50" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">오늘의 시그널</p>
-                <p className="text-2xl font-bold text-amber-400">12개</p>
-              </div>
-              <Flame className="h-8 w-8 text-amber-400/50" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">구독자 수익</p>
-                <PremiumLock isSubscribed={isSubscribed} type="blur" feature="구독자 수익 통계">
-                  <p className="text-2xl font-bold text-primary">₩2.4M</p>
-                </PremiumLock>
-              </div>
-              <Crown className="h-8 w-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
 
-      {/* 숨겨진 급등주 티저 - 최대 FOMO */}
-      {!isSubscribed && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <TeaserCard
-            title="🚀 이번 주 숨겨진 급등주 3종목"
-            subtitle="AI가 발굴한 10배 잠재력 종목을 확인하세요"
-            highlight="평균 +156% 수익률"
-          />
-          <TeaserCard
-            title="⚡ 긴급! 오늘의 매도 시그널"
-            subtitle="지금 팔아야 할 종목 2개가 감지되었습니다"
-            highlight="손실 회피 알림"
-          />
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="stock" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            주식
+          </TabsTrigger>
+          <TabsTrigger value="coin" className="flex items-center gap-2">
+            <Coins className="h-4 w-4" />
+            코인
+          </TabsTrigger>
+          <TabsTrigger value="futures" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            선물
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* 로딩/에러 상태 */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
 
-      {/* Service Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-          <TabsTrigger value="stock" className="gap-2">
-            📈 주식
-          </TabsTrigger>
-          <TabsTrigger value="coin" className="gap-2">
-            🪙 코인
-          </TabsTrigger>
-          <TabsTrigger value="futures" className="gap-2">
-            📊 선물
-          </TabsTrigger>
-        </TabsList>
+      {error && (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-400" />
+            <span>{error}</span>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value={activeTab} className="mt-6 space-y-6">
-          {/* Loading State */}
-          {loading && (
-            <Card className="border-border/50 bg-card/80">
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="flex flex-col items-center gap-4">
-                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">AI가 실시간 데이터를 분석하고 있습니다...</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+      {/* 시장 분석 */}
+      {data && !loading && (
+        <>
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                시장 전망
+                {data.marketSentiment && (
+                  <Badge className={cn(
+                    "ml-2",
+                    SENTIMENT_STYLES[data.marketSentiment].color,
+                    data.marketSentiment === "BULLISH" && "bg-emerald-500/20",
+                    data.marketSentiment === "BEARISH" && "bg-red-500/20",
+                    data.marketSentiment === "NEUTRAL" && "bg-amber-500/20",
+                  )}>
+                    {SENTIMENT_STYLES[data.marketSentiment].label}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {data.generatedAt && `생성: ${new Date(data.generatedAt).toLocaleString()}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">{data.summary}</p>
+            </CardContent>
+          </Card>
 
-          {/* Subscription Required */}
-          {subscriptionError && (
-            <Card className="border-amber-500/50 bg-amber-500/10">
-              <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse" />
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">
-                    <Lock className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-amber-400">구독이 필요합니다</h3>
-                  <p className="text-muted-foreground mt-2">{subscriptionError}</p>
-                </div>
-                <Button 
-                  className="mt-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                  onClick={() => setShowPremiumModal(true)}
-                >
-                  <Crown className="mr-2 h-4 w-4" />
-                  프리미엄 구독하기
+          {/* 추천 종목 목록 */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {limitedRecommendations.map((rec, index) => (
+              <RecommendationCard
+                key={`${rec.symbol}-${index}`}
+                recommendation={rec}
+                showPrecisePrice={canSeePrecisePrice}
+                showStopLoss={canSeeStopLoss}
+              />
+            ))}
+          </div>
+
+          {/* 더 많은 추천이 있는 경우 */}
+          {hasMoreRecommendations && (
+            <Card className="border-dashed border-primary/30">
+              <CardContent className="p-6 text-center">
+                <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
+                <p className="font-medium mb-2">
+                  +{data.recommendations.length - dailyLimit}개 추천 종목이 더 있습니다
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pro 플랜으로 업그레이드하면 모든 추천을 확인할 수 있습니다.
+                </p>
+                <Button asChild>
+                  <Link href="/subscriptions">플랜 업그레이드</Link>
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Error State */}
-          {error && !subscriptionError && (
-            <Card className="border-destructive/50 bg-destructive/10">
-              <CardContent className="flex items-center justify-center py-8">
-                <p className="text-destructive">{error}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recommendations Data */}
-          {!loading && !subscriptionError && data && (
-            <>
-              {/* Market Sentiment Card */}
-              <Card className="border-border/50 bg-card/80">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <SentimentIcon className={cn("h-5 w-5", SENTIMENT_STYLES[data.marketSentiment].color)} />
-                    시장 분석
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 mb-4 flex-wrap">
-                    <Badge 
-                      variant="outline" 
-                      className={cn("text-sm", SENTIMENT_STYLES[data.marketSentiment].color)}
-                    >
-                      시장 전망: {SENTIMENT_STYLES[data.marketSentiment].label}
-                    </Badge>
-                    {data.fromCache && (
-                      <Badge variant="secondary" className="text-xs">
-                        캐시됨
-                      </Badge>
-                    )}
-                    <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-500/50">
-                      실시간 데이터 기반
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(data.generatedAt).toLocaleString("ko-KR")} 기준
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground">{data.summary}</p>
-                </CardContent>
-              </Card>
-
-              {/* Recommendations Grid */}
-              <div className="grid gap-4 md:grid-cols-2">
-                {data.recommendations.map((rec, index) => (
-                  <RecommendationCard 
-                    key={index} 
-                    rec={rec} 
-                    index={index}
-                    isSubscribed={isSubscribed}
-                    onPremiumClick={() => setShowPremiumModal(true)}
-                  />
-                ))}
-              </div>
-
-              {/* 추가 프리미엄 종목 티저 */}
-              {!isSubscribed && (
-                <Card 
-                  className="border-dashed border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-orange-500/5 cursor-pointer hover:border-amber-500/50 transition-all"
-                  onClick={() => setShowPremiumModal(true)}
-                >
-                  <CardContent className="flex items-center justify-center py-8 gap-4">
-                    <Lock className="h-6 w-6 text-amber-400" />
-                    <div className="text-center">
-                      <p className="font-medium text-amber-400">
-                        + 프리미엄 전용 종목 5개 더 보기
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        AI가 선별한 고수익 잠재 종목
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Disclaimer */}
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardContent className="flex gap-3 py-4">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-muted-foreground">
-                    {data.disclaimer}
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Premium Modal */}
-      <PremiumModal 
-        open={showPremiumModal} 
-        onClose={() => setShowPremiumModal(false)}
-        feature="프리미엄 AI 종목추천"
-      />
+          {/* 면책조항 */}
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">{data.disclaimer}</p>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }
 
-// 추천 카드 컴포넌트
-function RecommendationCard({ 
-  rec, 
-  index,
-  isSubscribed,
-  onPremiumClick,
-}: { 
-  rec: StockRecommendation
-  index: number
-  isSubscribed: boolean
-  onPremiumClick: () => void
-}) {
-  // 비구독자는 처음 2개만 완전히 보여주고, 나머지는 블러 처리
-  const shouldBlur = !isSubscribed && index >= 2
+interface RecommendationCardProps {
+  recommendation: StockRecommendation
+  showPrecisePrice: boolean
+  showStopLoss: boolean
+}
 
-  if (shouldBlur) {
-    return (
-      <Card 
-        className="border-border/50 bg-card/80 card-hover cursor-pointer relative overflow-hidden"
-        onClick={onPremiumClick}
-      >
-        <div className="blur-md pointer-events-none">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">종목명</CardTitle>
-                <CardDescription>000000</CardDescription>
-              </div>
-              <Badge variant="outline" className="text-lg font-bold px-4 py-1 bg-emerald-500/20 text-emerald-400">
-                매수
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <div className="flex flex-col items-center p-2 rounded-lg bg-muted/50">
-                <span className="text-muted-foreground text-xs">현재가</span>
-                <span className="font-semibold">88,888원</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-lg bg-emerald-500/10">
-                <span className="text-emerald-400 text-xs">목표가</span>
-                <span className="font-semibold text-emerald-400">99,999원</span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded-lg bg-red-500/10">
-                <span className="text-red-400 text-xs">손절가</span>
-                <span className="font-semibold text-red-400">77,777원</span>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              AI 분석 결과에 따른 추천 이유입니다.
-            </p>
-          </CardContent>
-        </div>
-        
-        {/* Lock overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-background/90 via-background/50 to-transparent">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 shadow-lg mb-2">
-            <Lock className="h-6 w-6 text-white" />
-          </div>
-          <p className="text-sm font-medium">프리미엄 전용 종목</p>
-          <p className="text-xs text-muted-foreground">클릭하여 잠금 해제</p>
-        </div>
-      </Card>
-    )
-  }
+function RecommendationCard({ recommendation, showPrecisePrice, showStopLoss }: RecommendationCardProps) {
+  const { name, symbol, action, currentPrice, targetPrice, stopLoss, confidence, reason, timeframe, riskLevel } = recommendation
 
   return (
-    <Card className="border-border/50 bg-card/80 card-hover">
+    <Card className="border-border/50 hover:border-primary/30 transition-colors">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg">{rec.name}</CardTitle>
-            <CardDescription>{rec.symbol}</CardDescription>
+            <CardTitle className="text-lg">{name}</CardTitle>
+            <CardDescription>{symbol}</CardDescription>
           </div>
-          <Badge 
-            variant="outline" 
-            className={cn("text-lg font-bold px-4 py-1", ACTION_STYLES[rec.action])}
-          >
-            {ACTION_LABELS[rec.action]}
+          <Badge className={cn("font-semibold", ACTION_STYLES[action])}>
+            {ACTION_LABELS[action]}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Price Info */}
-        <div className="grid grid-cols-3 gap-2 text-sm">
-          <div className="flex flex-col items-center p-2 rounded-lg bg-muted/50">
-            <span className="text-muted-foreground text-xs">현재가</span>
-            <span className="font-semibold">{rec.currentPrice}</span>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-muted-foreground">현재가</p>
+            <p className="font-medium">{currentPrice}</p>
           </div>
-          <div className="flex flex-col items-center p-2 rounded-lg bg-emerald-500/10">
-            <span className="text-emerald-400 text-xs flex items-center gap-1">
-              <Target className="h-3 w-3" />
-              목표가
-            </span>
-            {isSubscribed ? (
-              <span className="font-semibold text-emerald-400">{rec.targetPrice}</span>
+          <div>
+            <p className="text-muted-foreground">목표가</p>
+            {showPrecisePrice ? (
+              <p className="font-medium text-emerald-400">{targetPrice}</p>
             ) : (
-              <span 
-                className="font-semibold text-emerald-400 cursor-pointer"
-                onClick={onPremiumClick}
-              >
-                <span className="blur-sm">88,888</span>
-                <Lock className="h-3 w-3 inline ml-1" />
-              </span>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <span className="blur-sm">88,888원</span>
+                <Lock className="h-3 w-3" />
+              </div>
             )}
           </div>
-          <div className="flex flex-col items-center p-2 rounded-lg bg-red-500/10">
-            <span className="text-red-400 text-xs flex items-center gap-1">
-              <Shield className="h-3 w-3" />
-              손절가
-            </span>
-            {isSubscribed ? (
-              <span className="font-semibold text-red-400">{rec.stopLoss}</span>
-            ) : (
-              <span 
-                className="font-semibold text-red-400 cursor-pointer"
-                onClick={onPremiumClick}
-              >
-                <span className="blur-sm">77,777</span>
-                <Lock className="h-3 w-3 inline ml-1" />
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Reason */}
-        <p className="text-sm text-muted-foreground">{rec.reason}</p>
-
-        {/* Meta Info */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-xs gap-1">
-            <Clock className="h-3 w-3" />
-            {rec.timeframe}
-          </Badge>
-          <Badge 
-            variant="outline" 
-            className={cn("text-xs", RISK_STYLES[rec.riskLevel])}
-          >
-            리스크: {RISK_LABELS[rec.riskLevel]}
-          </Badge>
-          <div className="flex items-center gap-1 ml-auto">
-            <span className="text-xs text-muted-foreground">신뢰도</span>
-            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  rec.confidence >= 70 ? "bg-emerald-500" : 
-                  rec.confidence >= 50 ? "bg-amber-500" : "bg-red-500"
-                )}
-                style={{ width: `${rec.confidence}%` }}
-              />
+          {showStopLoss && (
+            <div>
+              <p className="text-muted-foreground">손절가</p>
+              <p className="font-medium text-red-400">{stopLoss}</p>
             </div>
-            <span className="text-xs font-semibold">{rec.confidence}%</span>
+          )}
+          <div>
+            <p className="text-muted-foreground">신뢰도</p>
+            <p className="font-medium">{confidence}%</p>
           </div>
         </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-xs">
+            <Clock className="mr-1 h-3 w-3" />
+            {timeframe}
+          </Badge>
+          <Badge variant="outline" className={cn("text-xs", RISK_STYLES[riskLevel])}>
+            <Shield className="mr-1 h-3 w-3" />
+            {RISK_LABELS[riskLevel]}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-muted-foreground">{reason}</p>
       </CardContent>
     </Card>
   )

@@ -74,9 +74,35 @@ async function main() {
   })
   console.log("✅ Agencies created:", agency1.loginId, agency2.loginId)
 
-  // Create Users
+  // Create Users with different plans
   const userPassword = await bcrypt.hash("user123", 12)
   const users = []
+  
+  // 플랜별 테스트 유저 생성
+  const userPlans = [
+    { loginId: "user_free", name: "무료유저", plan: "FREE" as const },
+    { loginId: "user_basic", name: "베이직유저", plan: "BASIC" as const },
+    { loginId: "user_pro", name: "프로유저", plan: "PRO" as const },
+    { loginId: "user_premium", name: "프리미엄유저", plan: "PREMIUM" as const },
+  ]
+  
+  for (const userData of userPlans) {
+    const user = await prisma.user.upsert({
+      where: { loginId: userData.loginId },
+      update: { plan: userData.plan },
+      create: {
+        loginId: userData.loginId,
+        password: userPassword,
+        name: userData.name,
+        role: "USER",
+        plan: userData.plan,
+        parentId: agency1.id,
+      },
+    })
+    users.push(user)
+  }
+  
+  // 기존 유저들도 생성
   for (let i = 1; i <= 5; i++) {
     const user = await prisma.user.upsert({
       where: { loginId: `user_${String(i).padStart(3, "0")}` },
@@ -86,6 +112,7 @@ async function main() {
         password: userPassword,
         name: `유저${i}`,
         role: "USER",
+        plan: i <= 2 ? "FREE" : i <= 4 ? "BASIC" : "PRO",
         parentId: i <= 3 ? agency1.id : agency2.id,
       },
     })
@@ -102,6 +129,7 @@ async function main() {
         password: userPassword,
         name: `유저${i}`,
         role: "USER",
+        plan: "FREE",
         parentId: dist1.id,
       },
     })
@@ -239,7 +267,12 @@ async function main() {
   console.log("   Master:      master / master123")
   console.log("   Distributor: dist_01 / dist123")
   console.log("   Agency:      agency_01 / agency123")
-  console.log("   User:        user_001 / user123")
+  console.log("")
+  console.log("   📦 플랜별 테스트 계정:")
+  console.log("   FREE 유저:    user_free / user123")
+  console.log("   BASIC 유저:   user_basic / user123")
+  console.log("   PRO 유저:     user_pro / user123")
+  console.log("   PREMIUM 유저: user_premium / user123")
 }
 
 main()

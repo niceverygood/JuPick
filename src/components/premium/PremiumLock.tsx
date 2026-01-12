@@ -18,6 +18,7 @@ interface PremiumLockProps {
   type?: "blur" | "hide" | "teaser"
   teaserText?: string
   feature?: string
+  compact?: boolean // 작은 영역용 컴팩트 모드
 }
 
 export function PremiumLock({
@@ -26,11 +27,34 @@ export function PremiumLock({
   type = "blur",
   teaserText,
   feature = "프리미엄 콘텐츠",
+  compact = false,
 }: PremiumLockProps) {
   const [showModal, setShowModal] = useState(false)
 
   if (isSubscribed) {
     return <>{children}</>
+  }
+
+  // 컴팩트 모드 - 작은 카드 영역용
+  if (compact) {
+    return (
+      <>
+        <div 
+          className="cursor-pointer group" 
+          onClick={() => setShowModal(true)}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors w-fit">
+            <Lock className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-primary shrink-0" />
+            <span className="text-xs lg:text-sm font-medium text-primary whitespace-nowrap">프리미엄 전용</span>
+          </div>
+        </div>
+        <PremiumModal 
+          open={showModal} 
+          onClose={() => setShowModal(false)} 
+          feature={feature}
+        />
+      </>
+    )
   }
 
   return (
@@ -50,24 +74,24 @@ export function PremiumLock({
 
         {/* Lock overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-background/95 via-background/70 to-transparent rounded-lg">
-          <div className="flex flex-col items-center gap-3 p-6 text-center animate-pulse-glow">
+          <div className="flex flex-col items-center gap-2 lg:gap-3 p-3 lg:p-6 text-center animate-pulse-glow">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 shadow-lg shadow-primary/50">
-                <Lock className="h-8 w-8 text-white" />
+              <div className="relative flex h-10 w-10 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 shadow-lg shadow-primary/50">
+                <Lock className="h-5 w-5 lg:h-8 lg:w-8 text-white" />
               </div>
             </div>
             
-            <div className="space-y-1">
-              <p className="text-lg font-bold text-foreground">
+            <div className="space-y-0.5 lg:space-y-1">
+              <p className="text-sm lg:text-lg font-bold text-foreground whitespace-nowrap">
                 🔒 프리미엄 전용
               </p>
               {teaserText && (
-                <p className="text-sm text-primary font-medium animate-pulse">
+                <p className="text-xs lg:text-sm text-primary font-medium animate-pulse line-clamp-1">
                   {teaserText}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] lg:text-xs text-muted-foreground whitespace-nowrap">
                 클릭하여 구독 혜택 확인
               </p>
             </div>
@@ -97,7 +121,7 @@ interface PremiumModalProps {
 export function PremiumModal({ open, onClose, feature }: PremiumModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md border-primary/20 bg-gradient-to-b from-card to-background">
+      <DialogContent className="sm:max-w-md border-primary/20 bg-[#1a1a1a]">
         <DialogHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/30">
             <Crown className="h-8 w-8 text-white" />
@@ -131,7 +155,7 @@ export function PremiumModal({ open, onClose, feature }: PremiumModalProps) {
           </div>
 
           {/* Pricing teaser */}
-          <div className="rounded-lg bg-gradient-to-r from-primary/10 to-violet-500/10 p-4 text-center border border-primary/20">
+          <div className="rounded-lg bg-gradient-to-r from-primary/20 to-violet-500/20 p-4 text-center border border-primary/30">
             <p className="text-sm text-muted-foreground">지금 구독 시</p>
             <p className="text-2xl font-bold text-primary">첫 달 50% 할인</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -168,8 +192,8 @@ function BenefitItem({
   description: string 
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-background">
+    <div className="flex items-start gap-3 rounded-lg bg-[#252525] p-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a1a]">
         {icon}
       </div>
       <div>

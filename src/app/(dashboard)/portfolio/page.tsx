@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useSession } from "next-auth/react"
 import {
   Briefcase,
   Plus,
@@ -10,14 +9,13 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  Shield,
-  Target,
   Sparkles,
   Crown,
   Lock,
   PieChart,
   BarChart3,
   Zap,
+  Loader2,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +32,8 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { PremiumModal } from "@/components/premium/PremiumLock"
+import { usePlanFeatures } from "@/hooks/useSubscription"
+import Link from "next/link"
 
 interface Holding {
   id: string
@@ -93,7 +93,7 @@ const SAMPLE_HOLDINGS: Holding[] = [
 ]
 
 export default function PortfolioPage() {
-  const { data: session } = useSession()
+  const { canAccess, planId, planName, loading } = usePlanFeatures()
   const [holdings, setHoldings] = useState<Holding[]>(SAMPLE_HOLDINGS)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -105,7 +105,8 @@ export default function PortfolioPage() {
     avgPrice: "",
   })
   
-  const isSubscribed = session?.user?.role !== "USER"
+  // 포트폴리오 AI 분석 접근 권한 체크
+  const hasAnalysisAccess = canAccess("portfolioAnalysis")
 
   // 포트폴리오 통계 계산
   const totalValue = holdings.reduce((acc, h) => acc + (h.currentPrice || h.avgPrice) * h.quantity, 0)
@@ -115,7 +116,7 @@ export default function PortfolioPage() {
 
   // AI 분석 실행
   const handleAnalyze = async () => {
-    if (!isSubscribed) {
+    if (!hasAnalysisAccess) {
       setShowPremiumModal(true)
       return
     }
@@ -124,6 +125,14 @@ export default function PortfolioPage() {
     // 실제로는 API 호출
     await new Promise(resolve => setTimeout(resolve, 2000))
     setAnalyzing(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   // 종목 추가
@@ -309,8 +318,8 @@ export default function PortfolioPage() {
         </Card>
       </div>
 
-      {/* AI 위험 알림 (구독자 전용) */}
-      {isSubscribed && holdings.some(h => h.aiRecommendation === "SELL") && (
+      {/* AI 위험 알림 (Premium 전용) */}
+      {hasAnalysisAccess && holdings.some(h => h.aiRecommendation === "SELL") && (
         <Card className="border-red-500/50 bg-red-500/10">
           <CardContent className="flex items-start gap-4 py-4">
             <AlertTriangle className="h-6 w-6 text-red-400 shrink-0" />
@@ -329,9 +338,9 @@ export default function PortfolioPage() {
         <CardHeader>
           <CardTitle>보유 종목</CardTitle>
           <CardDescription>
-            {isSubscribed 
+            {hasAnalysisAccess 
               ? "각 종목별 AI 분석 결과를 확인하세요." 
-              : "AI 분석을 받으려면 프리미엄 구독이 필요합니다."}
+              : "AI 분석을 받으려면 Premium 플랜 구독이 필요합니다."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -347,7 +356,7 @@ export default function PortfolioPage() {
                 <HoldingCard 
                   key={holding.id}
                   holding={holding}
-                  isSubscribed={isSubscribed}
+                  hasAnalysisAccess={hasAnalysisAccess}
                   onRemove={() => handleRemoveHolding(holding.id)}
                   onPremiumClick={() => setShowPremiumModal(true)}
                 />
@@ -357,13 +366,13 @@ export default function PortfolioPage() {
         </CardContent>
       </Card>
 
-      {/* 비구독자 CTA */}
-      {!isSubscribed && holdings.length > 0 && (
+      {/* 비Premium 사용자 CTA */}
+      {!hasAnalysisAccess && holdings.length > 0 && (
         <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
           <CardContent className="py-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shrink-0">
                   <Zap className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -371,14 +380,19 @@ export default function PortfolioPage() {
                   <p className="text-sm text-muted-foreground">
                     보유 종목별 매수/매도/보유 추천과 리스크 분석을 받아보세요
                   </p>
+                  <Badge className="mt-1 bg-violet-500/20 text-violet-400 border-violet-500/50">
+                    Premium 전용 기능
+                  </Badge>
                 </div>
               </div>
               <Button 
-                className="bg-gradient-to-r from-amber-500 to-orange-500"
-                onClick={() => setShowPremiumModal(true)}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 w-full sm:w-auto"
+                asChild
               >
-                <Crown className="mr-2 h-4 w-4" />
-                구독하기
+                <Link href="/subscriptions">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Premium 구독하기
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -397,12 +411,12 @@ export default function PortfolioPage() {
 // 보유 종목 카드 컴포넌트
 function HoldingCard({ 
   holding, 
-  isSubscribed,
+  hasAnalysisAccess,
   onRemove,
   onPremiumClick,
 }: { 
   holding: Holding
-  isSubscribed: boolean
+  hasAnalysisAccess: boolean
   onRemove: () => void
   onPremiumClick: () => void
 }) {
@@ -432,7 +446,7 @@ function HoldingCard({
               <p className="font-medium">{holding.name}</p>
               <p className="text-sm text-muted-foreground">{holding.symbol}</p>
             </div>
-            {isSubscribed && holding.aiRecommendation && (
+            {hasAnalysisAccess && holding.aiRecommendation && (
               <Badge 
                 variant="outline" 
                 className={cn("text-xs", recommendationStyles[holding.aiRecommendation])}
@@ -469,7 +483,7 @@ function HoldingCard({
           </div>
 
           {/* AI 분석 결과 */}
-          {isSubscribed ? (
+          {hasAnalysisAccess ? (
             holding.aiReason && (
               <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                 <div className="flex items-start gap-2">

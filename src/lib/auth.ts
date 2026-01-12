@@ -14,6 +14,8 @@ declare module "next-auth" {
       loginId: string
       name: string
       role: UserRole
+      email?: string | null
+      phone?: string | null
     }
   }
   interface User {
@@ -21,6 +23,8 @@ declare module "next-auth" {
     loginId: string
     name: string
     role: UserRole
+    email?: string | null
+    phone?: string | null
   }
 }
 
@@ -88,6 +92,8 @@ const config: NextAuthConfig = {
           loginId: user.loginId,
           name: user.name,
           role: user.role,
+          email: user.email,
+          phone: user.phone,
         }
       },
     }),
@@ -98,6 +104,8 @@ const config: NextAuthConfig = {
         token.id = user.id
         token.loginId = (user as User).loginId
         token.role = (user as User).role
+        token.email = (user as User).email
+        token.phone = (user as User).phone
       }
       return token
     },
@@ -106,6 +114,8 @@ const config: NextAuthConfig = {
         session.user.id = token.id as string
         session.user.loginId = token.loginId as string
         session.user.role = token.role as UserRole
+        session.user.email = token.email as string | null
+        session.user.phone = token.phone as string | null
       }
       return session
     },

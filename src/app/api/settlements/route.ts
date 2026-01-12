@@ -14,9 +14,10 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get("endDate")
 
     const userRole = session.user.role
+    const userId = session.user.id
 
-    // Only master and distributors can view settlements
-    if (userRole !== "MASTER" && userRole !== "DISTRIBUTOR") {
+    // Master, Distributor, Agency can view settlements
+    if (userRole !== "MASTER" && userRole !== "DISTRIBUTOR" && userRole !== "AGENCY") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -30,7 +31,12 @@ export async function GET(req: NextRequest) {
     periodStart.setHours(0, 0, 0, 0)
     periodEnd.setHours(23, 59, 59, 999)
 
-    // Get distributors
+    // AGENCY 역할인 경우 별도 처리
+    if (userRole === "AGENCY") {
+      return await getAgencySettlements(userId, periodStart, periodEnd)
+    }
+
+    // Get distributors (MASTER or DISTRIBUTOR)
     let distributors
     if (userRole === "MASTER") {
       distributors = await prisma.user.findMany({
@@ -38,9 +44,10 @@ export async function GET(req: NextRequest) {
         select: { id: true, loginId: true, name: true, dailyRate: true },
       })
     } else {
+      // DISTRIBUTOR - only their own data
       distributors = [
         await prisma.user.findUnique({
-          where: { id: session.user.id },
+          where: { id: userId },
           select: { id: true, loginId: true, name: true, dailyRate: true },
         }),
       ].filter(Boolean)
@@ -97,6 +104,7 @@ export async function GET(req: NextRequest) {
         })
 
         let agencyTotalDays = 0
+        let agencyFreeTestDays = 0
         const agencyUserDetails = []
 
         for (const user of agencyUsers) {
@@ -106,6 +114,7 @@ export async function GET(req: NextRequest) {
             periodEnd
           )
           agencyTotalDays += paidDays
+          agencyFreeTestDays += freeDays
           distTotalDays += paidDays
           distFreeTestDays += freeDays
           if (paidDays > 0 || freeDays > 0) {
@@ -120,14 +129,15 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        if (agencyTotalDays > 0 || agencyUserDetails.length > 0) {
-          agencyDetails.push({
-            agencyId: agency.id,
-            agencyName: agency.loginId,
-            totalDays: agencyTotalDays,
-            users: agencyUserDetails,
-          })
-        }
+        agencyDetails.push({
+          agencyId: agency.id,
+          agencyName: agency.loginId,
+          agencyDisplayName: agency.name,
+          totalDays: agencyTotalDays,
+          freeTestDays: agencyFreeTestDays,
+          users: agencyUserDetails,
+          userCount: agencyUsers.length,
+        })
       }
 
       const distAmount = distTotalDays * dist.dailyRate
@@ -138,10 +148,13 @@ export async function GET(req: NextRequest) {
       results.push({
         distributorId: dist.id,
         distributorName: dist.loginId,
+        distributorDisplayName: dist.name,
         dailyRate: dist.dailyRate,
         totalDays: distTotalDays,
         freeTestDays: distFreeTestDays,
         totalAmount: distAmount,
+        agencyCount: agencies.length,
+        directUserCount: directUsers.length,
         details: {
           agencies: agencyDetails,
           directUsers: directUserDetails,
@@ -150,6 +163,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
+      role: userRole,
       periodStart,
       periodEnd,
       settlements: results,
@@ -166,6 +180,83 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// 대행사(AGENCY) 정산 조회
+async function getAgencySettlements(agencyId: string, periodStart: Date, periodEnd: Date) {
+  // 대행사 정보 조회
+  const agency = await prisma.user.findUnique({
+    where: { id: agencyId },
+    select: { 
+      id: true, 
+      loginId: true, 
+      name: true,
+      parent: {
+        select: { id: true, loginId: true, name: true, dailyRate: true }
+      }
+    },
+  })
+
+  if (!agency) {
+    return NextResponse.json({ error: "Agency not found" }, { status: 404 })
+  }
+
+  // 대행사 소속 유저들 조회
+  const users = await prisma.user.findMany({
+    where: { parentId: agencyId, role: "USER" },
+    select: { id: true, loginId: true, name: true },
+  })
+
+  let totalDays = 0
+  let totalFreeTestDays = 0
+  const userDetails = []
+
+  for (const user of users) {
+    const { paidDays, freeDays, services } = await calculateUserDays(
+      user.id,
+      periodStart,
+      periodEnd
+    )
+    totalDays += paidDays
+    totalFreeTestDays += freeDays
+    
+    userDetails.push({
+      userId: user.id,
+      loginId: user.loginId,
+      name: user.name,
+      paidDays,
+      freeDays,
+      services,
+    })
+  }
+
+  // 정산 예상 금액 (총판의 단가 기준)
+  const estimatedAmount = agency.parent ? totalDays * agency.parent.dailyRate : 0
+
+  return NextResponse.json({
+    role: "AGENCY",
+    periodStart,
+    periodEnd,
+    agency: {
+      id: agency.id,
+      loginId: agency.loginId,
+      name: agency.name,
+      parentDistributor: agency.parent ? {
+        id: agency.parent.id,
+        loginId: agency.parent.loginId,
+        name: agency.parent.name,
+        dailyRate: agency.parent.dailyRate,
+      } : null,
+    },
+    summary: {
+      totalUsers: users.length,
+      activeUsers: userDetails.filter(u => u.paidDays > 0 || u.freeDays > 0).length,
+      totalDays,
+      totalFreeTestDays,
+      estimatedAmount, // 참고용 예상 금액
+    },
+    users: userDetails,
+  })
 }
 
 async function calculateUserDays(
@@ -220,4 +311,3 @@ async function calculateUserDays(
 
   return { paidDays, freeDays, services }
 }
-

@@ -27,6 +27,16 @@ export interface MarketIndex {
   changePercent: number
 }
 
+// 쉼표가 포함된 숫자 문자열 파싱 (예: "284,000" -> 284000)
+function parseNumber(value: string | number | undefined | null): number {
+  if (value === undefined || value === null) return 0
+  if (typeof value === "number") return value
+  // 쉼표 제거 후 숫자 변환
+  const cleaned = String(value).replace(/,/g, "")
+  const parsed = parseFloat(cleaned)
+  return isNaN(parsed) ? 0 : parsed
+}
+
 // 네이버 금융에서 주식 정보 가져오기
 export async function fetchStockData(symbol: string): Promise<StockData | null> {
   try {
@@ -50,20 +60,20 @@ export async function fetchStockData(symbol: string): Promise<StockData | null> 
     return {
       symbol: data.stockItemId || symbol,
       name: data.stockName || "",
-      currentPrice: parseFloat(data.closePrice) || 0,
-      change: parseFloat(data.compareToPreviousClosePrice) || 0,
-      changePercent: parseFloat(data.fluctuationsRatio) || 0,
-      volume: parseInt(data.accumulatedTradingVolume) || 0,
-      marketCap: parseInt(data.marketValue) || 0,
-      high: parseFloat(data.highPrice) || 0,
-      low: parseFloat(data.lowPrice) || 0,
-      open: parseFloat(data.openPrice) || 0,
-      previousClose: parseFloat(data.previousClosePrice) || 0,
-      per: parseFloat(data.per) || 0,
-      pbr: parseFloat(data.pbr) || 0,
-      eps: parseFloat(data.eps) || 0,
-      foreignRatio: parseFloat(data.foreignerHoldingRatio) || 0,
-      tradingValue: parseInt(data.accumulatedTradingValue) || 0,
+      currentPrice: parseNumber(data.closePrice),
+      change: parseNumber(data.compareToPreviousClosePrice),
+      changePercent: parseNumber(data.fluctuationsRatio),
+      volume: parseNumber(data.accumulatedTradingVolume),
+      marketCap: parseNumber(data.marketValue),
+      high: parseNumber(data.highPrice),
+      low: parseNumber(data.lowPrice),
+      open: parseNumber(data.openPrice),
+      previousClose: parseNumber(data.previousClosePrice),
+      per: parseNumber(data.per),
+      pbr: parseNumber(data.pbr),
+      eps: parseNumber(data.eps),
+      foreignRatio: parseNumber(data.foreignerHoldingRatio),
+      tradingValue: parseNumber(data.accumulatedTradingValue),
     }
   } catch (error) {
     console.error(`Error fetching stock ${symbol}:`, error)
@@ -179,9 +189,9 @@ export async function fetchMarketIndices(): Promise<MarketIndex[]> {
         const data = await response.json()
         results.push({
           name: index.name,
-          value: parseFloat(data.closePrice) || 0,
-          change: parseFloat(data.compareToPreviousClosePrice) || 0,
-          changePercent: parseFloat(data.fluctuationsRatio) || 0,
+          value: parseNumber(data.closePrice),
+          change: parseNumber(data.compareToPreviousClosePrice),
+          changePercent: parseNumber(data.fluctuationsRatio),
         })
       }
     }
@@ -211,10 +221,10 @@ export async function fetchTopGainers(limit: number = 10): Promise<StockData[]> 
     return (data.stocks || []).map((stock: any) => ({
       symbol: stock.itemCode,
       name: stock.stockName,
-      currentPrice: parseFloat(stock.closePrice) || 0,
-      change: parseFloat(stock.compareToPreviousClosePrice) || 0,
-      changePercent: parseFloat(stock.fluctuationsRatio) || 0,
-      volume: parseInt(stock.accumulatedTradingVolume) || 0,
+      currentPrice: parseNumber(stock.closePrice),
+      change: parseNumber(stock.compareToPreviousClosePrice),
+      changePercent: parseNumber(stock.fluctuationsRatio),
+      volume: parseNumber(stock.accumulatedTradingVolume),
       marketCap: 0,
       high: 0,
       low: 0,
@@ -250,10 +260,10 @@ export async function fetchTopLosers(limit: number = 10): Promise<StockData[]> {
     return (data.stocks || []).map((stock: any) => ({
       symbol: stock.itemCode,
       name: stock.stockName,
-      currentPrice: parseFloat(stock.closePrice) || 0,
-      change: parseFloat(stock.compareToPreviousClosePrice) || 0,
-      changePercent: parseFloat(stock.fluctuationsRatio) || 0,
-      volume: parseInt(stock.accumulatedTradingVolume) || 0,
+      currentPrice: parseNumber(stock.closePrice),
+      change: parseNumber(stock.compareToPreviousClosePrice),
+      changePercent: parseNumber(stock.fluctuationsRatio),
+      volume: parseNumber(stock.accumulatedTradingVolume),
       marketCap: 0,
       high: 0,
       low: 0,
@@ -289,10 +299,10 @@ export async function fetchMostActive(limit: number = 10): Promise<StockData[]> 
     return (data.stocks || []).map((stock: any) => ({
       symbol: stock.itemCode,
       name: stock.stockName,
-      currentPrice: parseFloat(stock.closePrice) || 0,
-      change: parseFloat(stock.compareToPreviousClosePrice) || 0,
-      changePercent: parseFloat(stock.fluctuationsRatio) || 0,
-      volume: parseInt(stock.accumulatedTradingVolume) || 0,
+      currentPrice: parseNumber(stock.closePrice),
+      change: parseNumber(stock.compareToPreviousClosePrice),
+      changePercent: parseNumber(stock.fluctuationsRatio),
+      volume: parseNumber(stock.accumulatedTradingVolume),
       marketCap: 0,
       high: 0,
       low: 0,

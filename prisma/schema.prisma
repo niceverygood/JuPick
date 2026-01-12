@@ -19,6 +19,14 @@ enum UserRole {
   USER        // 일반유저
 }
 
+// 사용자 플랜 enum
+enum UserPlan {
+  FREE
+  BASIC
+  PRO
+  PREMIUM
+}
+
 // 서비스 타입 enum
 enum ServiceType {
   STOCK         // 주식
@@ -44,6 +52,40 @@ enum LogType {
   SETTLEMENT            // 정산
 }
 
+// 시그널 타입 enum
+enum SignalType {
+  BUY
+  SELL
+  HOLD
+  ALERT
+}
+
+// 상담 상태 enum
+enum ConsultationStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+// 알림 타입 enum
+enum NotificationType {
+  RECOMMENDATION
+  SIGNAL
+  REPORT
+  CONSULTATION
+  SYSTEM
+  PROMOTION
+}
+
+// 리포트 타입 enum
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SPECIAL
+}
+
 // 사용자 테이블
 model User {
   id            String    @id @default(cuid())
@@ -52,6 +94,18 @@ model User {
   name          String              // 이름/닉네임
   role          UserRole  @default(USER)
   
+  // 플랜 정보
+  plan              UserPlan  @default(FREE)
+  planExpiresAt     DateTime?
+  
+  // 일일 사용량 추적
+  dailyRecommendations  Int       @default(0)
+  lastRecommendationDate DateTime?
+  weeklyHotStocks       Int       @default(0)
+  lastHotStockDate      DateTime?
+  monthlyConsultations  Int       @default(0)
+  lastConsultationDate  DateTime?
+  
   // 상위 관계 (누가 이 계정을 만들었는지)
   parentId      String?
   parent        User?     @relation("UserHierarchy", fields: [parentId], references: [id])
@@ -59,6 +113,10 @@ model User {
   
   // 총판용 정산 단가 (마스터가 설정)
   dailyRate     Int       @default(100000)  // 1일당 단가 (원)
+  
+  // 연락처 (알림용)
+  email         String?
+  phone         String?
   
   // 메모
   memo          String?
@@ -73,13 +131,19 @@ model User {
   lastLoginAt   DateTime?
   
   // 관계
-  subscriptions Subscription[]
-  logsCreated   Log[]     @relation("LogCreator")
-  logsTarget    Log[]     @relation("LogTarget")
-  notices       Notice[]
+  subscriptions     Subscription[]
+  logsCreated       Log[]     @relation("LogCreator")
+  logsTarget        Log[]     @relation("LogTarget")
+  notices           Notice[]
+  recommendations   StockRecommendation[]
+  signals           Signal[]
+  portfolioAnalysis PortfolioAnalysis[]
+  consultations     Consultation[]
+  notifications     Notification[]
   
   @@index([parentId])
   @@index([role])
+  @@index([plan])
 }
 
 // 구독(서비스 이용권) 테이블
@@ -91,6 +155,9 @@ model Subscription {
   
   serviceType   ServiceType        // 서비스 종류
   status        SubscriptionStatus @default(PENDING)
+  
+  // 구독 플랜 (basic, pro, premium)
+  planId        String             @default("basic")
   
   startDate     DateTime           // 시작일
   endDate       DateTime           // 종료일
@@ -108,6 +175,7 @@ model Subscription {
   @@index([serviceType])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([planId])
 }
 
 // 활동 로그 테이블
@@ -191,4 +259,137 @@ model Settlement {
   
   @@index([distributorId])
   @@index([periodStart, periodEnd])
+}
+
+// AI 주식 추천
+model StockRecommendation {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stockCode     String   // 종목코드
+  stockName     String   // 종목명
+  currentPrice  Int      // 현재가
+  targetPrice   Int      // 목표가
+  stopLoss      Int?     // 손절가 (Pro 이상)
+  
+  reason        String   // 추천 이유
+  confidence    Float    // AI 확신도 (0-100)
+  
+  category      String   // 추천 카테고리 (급등주, 가치주 등)
+  isHotStock    Boolean  @default(false)  // 숨겨진 급등주 여부
+  
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime // 추천 유효기간
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isHotStock])
+}
+
+// 실시간 시그널
+model Signal {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stockCode     String
+  stockName     String
+  signalType    SignalType // BUY, SELL, HOLD, ALERT
+  price         Int
+  targetPrice   Int?
+  stopLoss      Int?
+  reason        String
+  
+  isRead        Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+// 포트폴리오 AI 분석
+model PortfolioAnalysis {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalValue            Int      // 총 자산
+  totalProfit           Int      // 총 수익
+  profitRate            Float    // 수익률
+  
+  riskScore             Int      // 위험도 (1-100)
+  diversificationScore  Int      // 분산투자 점수
+  
+  suggestions           Json     // AI 제안사항
+  holdings              Json     // 보유종목 분석
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// 전문가 상담
+model Consultation {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status        ConsultationStatus @default(PENDING)
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  
+  question      String
+  answer        String?
+  
+  createdAt     DateTime           @default(now())
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// 알림
+model Notification {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          NotificationType
+  title         String
+  message       String
+  
+  isRead        Boolean          @default(false)
+  
+  // 발송 상태
+  emailSent     Boolean          @default(false)
+  pushSent      Boolean          @default(false)
+  smsSent       Boolean          @default(false)
+  
+  createdAt     DateTime         @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// 시장 분석 리포트
+model MarketReport {
+  id            String     @id @default(cuid())
+  
+  title         String
+  content       String     // 전체 콘텐츠
+  summary       String     // 요약 (Basic용)
+  detailed      String     // 상세 (Pro용)
+  premium       String     // 프리미엄 (Premium용)
+  
+  reportType    ReportType
+  reportDate    DateTime   @default(now())
+  
+  createdAt     DateTime   @default(now())
+  
+  @@index([reportDate])
+  @@index([reportType])
 }

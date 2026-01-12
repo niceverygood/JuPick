@@ -241,17 +241,17 @@ export default async function DashboardPage() {
   ])
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 lg:space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold">📊 대시보드</h1>
-        <p className="text-muted-foreground">
+      <div className="min-w-0">
+        <h1 className="text-xl lg:text-2xl font-bold">📊 대시보드</h1>
+        <p className="text-sm text-muted-foreground">
           AI 종목추천 서비스 현황을 한눈에 확인하세요.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {role === "MASTER" && (
           <StatCard
             title="💰 이번주 정산예정"
@@ -285,7 +285,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Charts and Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2">
         <WeeklyChart data={chartData} />
         <ExpiringSubscriptions subscriptions={expiringSubscriptions as any} />
       </div>
