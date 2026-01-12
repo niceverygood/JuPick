@@ -427,13 +427,13 @@ function RecommendationRow({
   // 비구독자는 처음 3개만 보여줌
   const shouldBlur = !isSubscribed && index >= 3
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     WIN: "text-emerald-400 bg-emerald-500/10",
     LOSS: "text-red-400 bg-red-500/10",
     PENDING: "text-amber-400 bg-amber-500/10",
   }
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     WIN: "수익",
     LOSS: "손실",
     PENDING: "진행중",
